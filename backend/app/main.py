@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -7,9 +9,18 @@ from backend.app.config import APP_NAME
 from backend.app.database import engine
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
+
+logger = logging.getLogger(__name__)
+
+
 app = FastAPI(
     title=APP_NAME,
 )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,8 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
 def health_check():
+    logger.info("Health check requested")
     return {"status": "ok"}
 
 
@@ -30,9 +43,11 @@ def database_health_check():
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
     except SQLAlchemyError:
+        logger.exception("Database health check failed")
         raise HTTPException(
             status_code=503,
             detail="Database unavailable",
         )
 
+    logger.info("Database health check passed")
     return {"database": "ok"}
